@@ -3,48 +3,17 @@
 public class Games.RetroRunner : Object, Runner {
 	public bool can_resume {
 		get {
-			var file = File.new_for_path (snapshot_path);
+			try {
+				var snapshot_path = get_snapshot_path ();
+				var file = File.new_for_path (snapshot_path);
 
-			return file.query_exists ();
-		}
-	}
+				return file.query_exists ();
+			}
+			catch (Error e) {
+				warning (e.message);
+			}
 
-	private string _save_path;
-	private string save_path {
-		get {
-			if (_save_path != null)
-				return _save_path;
-
-			var dir = Application.get_saves_dir ();
-			_save_path = @"$dir/$uid.save";
-
-			return _save_path;
-		}
-	}
-
-	private string _snapshot_path;
-	private string snapshot_path {
-		get {
-			if (_snapshot_path != null)
-				return _snapshot_path;
-
-			var dir = Application.get_snapshots_dir ();
-			_snapshot_path = @"$dir/$uid.snapshot";
-
-			return _snapshot_path;
-		}
-	}
-
-	private string _screenshot_path;
-	private string screenshot_path {
-		get {
-			if (_screenshot_path != null)
-				return _screenshot_path;
-
-			var dir = Application.get_snapshots_dir ();
-			_screenshot_path = @"$dir/$uid.png";
-
-			return _screenshot_path;
+			return false;
 		}
 	}
 
@@ -60,7 +29,11 @@ public class Games.RetroRunner : Object, Runner {
 
 	private Gtk.EventBox widget;
 
-	private string uid;
+	private string save_path;
+	private string snapshot_path;
+	private string screenshot_path;
+
+	private Uid uid;
 
 	private bool _running;
 	private bool running {
@@ -74,7 +47,7 @@ public class Games.RetroRunner : Object, Runner {
 
 	private bool construction_succeeded;
 
-	public RetroRunner (string module_basename, string game_path, string uid) throws Error {
+	public RetroRunner (string module_basename, string game_path, Uid uid) throws Error {
 		construction_succeeded = false;
 
 		this.uid = uid;
@@ -222,6 +195,17 @@ public class Games.RetroRunner : Object, Runner {
 		save_screenshot ();
 	}
 
+	private string get_save_path () throws Error {
+		if (save_path != null)
+			return save_path;
+
+		var dir = Application.get_saves_dir ();
+		var uid = uid.get_uid ();
+		save_path = @"$dir/$uid.save";
+
+		return save_path;
+	}
+
 	private void save_ram () throws Error{
 		var save = core.get_memory (Retro.MemoryType.SAVE_RAM);
 		if (save.length == 0)
@@ -230,10 +214,14 @@ public class Games.RetroRunner : Object, Runner {
 		var dir = Application.get_saves_dir ();
 		try_make_dir (dir);
 
+		var save_path = get_save_path ();
+
 		FileUtils.set_data (save_path, save);
 	}
 
 	private void load_ram () throws Error {
+		var save_path = get_save_path ();
+
 		if (!FileUtils.test (save_path, FileTest.EXISTS))
 			return;
 
@@ -247,6 +235,17 @@ public class Games.RetroRunner : Object, Runner {
 		core.set_memory (Retro.MemoryType.SAVE_RAM, data);
 	}
 
+	private string get_snapshot_path () throws Error {
+		if (snapshot_path != null)
+			return snapshot_path;
+
+		var dir = Application.get_snapshots_dir ();
+		var uid = uid.get_uid ();
+		snapshot_path = @"$dir/$uid.snapshot";
+
+		return snapshot_path;
+	}
+
 	private void save_snapshot () throws Error {
 		var size = core.serialize_size ();
 		var buffer = new uint8[size];
@@ -257,10 +256,14 @@ public class Games.RetroRunner : Object, Runner {
 		var dir = Application.get_snapshots_dir ();
 		try_make_dir (dir);
 
+		var snapshot_path = get_snapshot_path ();
+
 		FileUtils.set_data (snapshot_path, buffer);
 	}
 
 	private void load_snapshot () throws Error {
+		var snapshot_path = get_snapshot_path ();
+
 		if (!FileUtils.test (snapshot_path, FileTest.EXISTS))
 			return;
 
@@ -275,15 +278,30 @@ public class Games.RetroRunner : Object, Runner {
 			throw new RetroError.COULDNT_LOAD_SNAPSHOT ("Couldn't load snapshot.");
 	}
 
+	private string get_screenshot_path () throws Error {
+		if (screenshot_path != null)
+			return screenshot_path;
+
+		var dir = Application.get_snapshots_dir ();
+		var uid = uid.get_uid ();
+		screenshot_path = @"$dir/$uid.png";
+
+		return screenshot_path;
+	}
+
 	private void save_screenshot () throws Error {
 		var pixbuf = video.pixbuf;
 		if (pixbuf == null)
 			return;
 
+		var screenshot_path = get_screenshot_path ();
+
 		pixbuf.save (screenshot_path, "png");
 	}
 
 	private void load_screenshot () throws Error {
+		var screenshot_path = get_screenshot_path ();
+
 		if (!FileUtils.test (screenshot_path, FileTest.EXISTS))
 			return;
 
