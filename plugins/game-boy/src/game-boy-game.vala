@@ -26,14 +26,11 @@ private class Games.GameBoyGame : Object, Game {
 	}
 
 	private string uri;
-	private string path;
 
 	public GameBoyGame (string uri) throws Error {
 		this.uri = uri;
 
 		var file = File.new_for_uri (uri);
-		path = file.get_path ();
-
 		var header = new GameBoyHeader (file);
 		header.check_validity ();
 
@@ -44,6 +41,6 @@ private class Games.GameBoyGame : Object, Game {
 	}
 
 	public Runner get_runner () throws Error {
-		return new RetroRunner (MODULE_BASENAME, path, uid);
+		return new RetroRunner (MODULE_BASENAME, uri, uid);
 	}
 }

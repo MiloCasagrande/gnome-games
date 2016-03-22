@@ -47,7 +47,7 @@ public class Games.RetroRunner : Object, Runner {
 
 	private bool construction_succeeded;
 
-	public RetroRunner (string module_basename, string game_path, Uid uid) throws Error {
+	public RetroRunner (string module_basename, string uri, Uid uid) throws Error {
 		construction_succeeded = false;
 
 		this.uid = uid;
@@ -61,7 +61,7 @@ public class Games.RetroRunner : Object, Runner {
 		gamepad = new RetroGtk.VirtualGamepad (widget);
 		keyboard = new RetroGtk.Keyboard (widget);
 
-		prepare_core (module_basename, game_path);
+		prepare_core (module_basename, uri);
 		core.shutdown.connect (on_shutdown);
 
 		core.run (); // Needed to finish preparing some cores.
@@ -114,7 +114,7 @@ public class Games.RetroRunner : Object, Runner {
 		running = true;
 	}
 
-	private void prepare_core (string module_basename, string game_path) throws Error {
+	private void prepare_core (string module_basename, string uri) throws Error {
 		var module_path = Retro.search_module (module_basename);
 		var module = File.new_for_path (module_path);
 		if (!module.query_exists ()) {
@@ -141,14 +141,17 @@ public class Games.RetroRunner : Object, Runner {
 
 		core.init ();
 
-		if (!try_load_game (core, game_path))
-			throw new RetroError.INVALID_GAME_FILE (@"Invalid game file: $game_path");
+		if (!try_load_game (core, uri))
+			throw new RetroError.INVALID_GAME_FILE (@"Invalid game file: $uri");
 	}
 
-	private bool try_load_game (Retro.Core core, string game_name) {
+	private bool try_load_game (Retro.Core core, string uri) {
+		var file = File.new_for_uri (uri);
+		var path = file.get_path ();
+
 		try {
 			var fullpath = core.system_info.need_fullpath;
-			if (core.load_game (fullpath ? Retro.GameInfo (game_name) : Retro.GameInfo.with_data (game_name))) {
+			if (core.load_game (fullpath ? Retro.GameInfo (path) : Retro.GameInfo.with_data (path))) {
 				if (core.disk_control_interface != null) {
 					var disk = core.disk_control_interface;
 
@@ -159,7 +162,7 @@ public class Games.RetroRunner : Object, Runner {
 
 					var index = disk.get_num_images () - 1;
 
-					disk.replace_image_index (index, fullpath ? Retro.GameInfo (game_name) : Retro.GameInfo.with_data (game_name));
+					disk.replace_image_index (index, fullpath ? Retro.GameInfo (path) : Retro.GameInfo.with_data (path));
 
 					disk.set_eject_state (false);
 				}
