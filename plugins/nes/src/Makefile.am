@@ -7,7 +7,6 @@ libgames_nes_plugin_la_DEPENDENCIES = \
 
 libgames_nes_plugin_la_SOURCES = \
 	nes-game.vala \
-	nes-plugin.vala \
 	$(NULL)
 
 libgames_nes_plugin_la_VALAFLAGS = \
